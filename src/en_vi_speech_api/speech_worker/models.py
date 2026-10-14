@@ -1,0 +1,161 @@
+from __future__ import annotations
+
+import asyncio
+import os
+import time
+from collections.abc import Callable
+from pathlib import Path
+from typing import Any
+
+VOXCPM_MODEL_BASE = Path("/kaggle/input/models/dangkhoa2016/openbmb-voxcpm2/pytorch/default")
+WHISPER_MODEL_BASE = Path(
+    "/kaggle/input/models/dangkhoa2016/openai-whisper-large-v3-turbo/transformers/default"
+)
+
+
+def discover_versioned_model(base: Path | str, *, required: tuple[str, ...]) -> Path:
+    root = Path(base)
+    if not root.is_dir():
+        raise FileNotFoundError(f"Model base directory not found: {root}")
+    versions = sorted(
+        (path for path in root.iterdir() if path.is_dir()),
+        key=lambda path: (int(path.name) if path.name.isdigit() else -1, path.name),
+        reverse=True,
+    )
+    for candidate in versions:
+        if all((candidate / relative).is_file() for relative in required):
+            return candidate
+    raise FileNotFoundError(f"No complete model version found under {root}")
+
+
+def _import_torch() -> Any:
+    import torch
+
+    return torch
+
+
+def assert_single_logical_cuda_device() -> Any:
+    torch = _import_torch()
+    if not torch.cuda.is_available() or torch.cuda.device_count() != 1:
+        raise RuntimeError(
+            "Speech worker must see exactly one logical CUDA device after CUDA visibility isolation."
+        )
+    return torch
+
+
+def load_voxcpm_real(model_path: Path | str | None = None) -> Any:
+    torch = assert_single_logical_cuda_device()
+    del torch
+    from voxcpm import VoxCPM
+
+    path = (
+        Path(model_path)
+        if model_path is not None
+        else discover_versioned_model(
+            VOXCPM_MODEL_BASE,
+            required=("config.json", "model.safetensors", "audiovae.pth"),
+        )
+    )
+    return VoxCPM.from_pretrained(
+        str(path),
+        load_denoiser=False,
+        local_files_only=True,
+        optimize=False,
+        device="cuda:0",
+    )
+
+
+def load_whisper_real(model_path: Path | str | None = None) -> Any:
+    torch = assert_single_logical_cuda_device()
+    from transformers import AutoModelForSpeechSeq2Seq
+
+    path = (
+        Path(model_path)
+        if model_path is not None
+        else discover_versioned_model(
+            WHISPER_MODEL_BASE,
+            required=("config.json", "model.safetensors", "preprocessor_config.json"),
+        )
+    )
+    model = AutoModelForSpeechSeq2Seq.from_pretrained(
+        str(path),
+        dtype=torch.float16,
+        local_files_only=True,
+    )
+    return model.to("cuda:0")
+
+
+class SpeechModels:
+    def __init__(
+        self,
+        *,
+        voxcpm_loader: Callable[[], Any],
+        whisper_loader: Callable[[], Any],
+        stage_hook: Callable[[str], None] | None = None,
+    ) -> None:
+        self._voxcpm_loader = voxcpm_loader
+        self._whisper_loader = whisper_loader
+        self._stage_hook = stage_hook
+        self.voxcpm: Any = None
+        self.whisper: Any = None
+        self.gpu_semaphore = asyncio.Semaphore(1)
+        self.load_metadata: dict[str, Any] = {}
+
+    @property
+    def ready(self) -> bool:
+        return self.voxcpm is not None and self.whisper is not None
+
+    def load(self) -> dict[str, Any]:
+        started = time.perf_counter()
+        voxcpm_started = time.perf_counter()
+        self.voxcpm = self._voxcpm_loader()
+        voxcpm_seconds = time.perf_counter() - voxcpm_started
+        if self._stage_hook is not None:
+            self._stage_hook("voxcpm_loaded")
+
+        whisper_started = time.perf_counter()
+        self.whisper = self._whisper_loader()
+        whisper_seconds = time.perf_counter() - whisper_started
+        if self._stage_hook is not None:
+            self._stage_hook("whisper_loaded")
+
+        torch_version: str | None = None
+        cuda_runtime: str | None = None
+        logical_gpu_count: int | None = None
+        try:
+            torch = _import_torch()
+        except ImportError:
+            torch = None
+        if torch is not None:
+            torch_version = str(torch.__version__)
+            cuda_runtime = str(torch.version.cuda)
+            logical_gpu_count = int(torch.cuda.device_count())
+
+        self.load_metadata = {
+            "ready": self.ready,
+            "voxcpm_load_seconds": round(voxcpm_seconds, 3),
+            "whisper_load_seconds": round(whisper_seconds, 3),
+            "total_load_seconds": round(time.perf_counter() - started, 3),
+            "torch_version": torch_version,
+            "cuda_runtime": cuda_runtime,
+            "logical_gpu_count": logical_gpu_count,
+            "visible_devices": os.getenv("CUDA_VISIBLE_DEVICES"),
+        }
+        return dict(self.load_metadata)
+
+
+def build_real_speech_models(*, stage_hook: Callable[[str], None] | None = None) -> SpeechModels:
+    assert_single_logical_cuda_device()
+    return SpeechModels(
+        voxcpm_loader=load_voxcpm_real,
+        whisper_loader=load_whisper_real,
+        stage_hook=stage_hook,
+    )
+
+
+class StubSpeechModels:
+    ready = True
+
+    def __init__(self) -> None:
+        self.gpu_semaphore = asyncio.Semaphore(1)
+        self.load_metadata = {"ready": True, "mode": "stub"}
