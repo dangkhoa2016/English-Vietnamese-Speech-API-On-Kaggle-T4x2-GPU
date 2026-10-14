@@ -12,6 +12,8 @@ evidence/
 *.zip
 *.wav
 !data/fixtures/*.wav
+!data/fixtures/voices/
+!data/fixtures/voices/*.wav
 .DS_Store
 
 .superpowers/

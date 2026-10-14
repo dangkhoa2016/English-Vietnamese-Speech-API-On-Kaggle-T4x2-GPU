@@ -5,10 +5,10 @@ import tempfile
 from pathlib import Path
 from typing import Annotated, Any, Protocol
 
-from fastapi import FastAPI, File, Form, HTTPException, UploadFile, status
+from fastapi import FastAPI, File, Form, HTTPException, Response, UploadFile, status
 
 from en_vi_speech_api.speech_worker.models import StubSpeechModels
-from en_vi_speech_api.speech_worker.schemas import TranscriptionResponse
+from en_vi_speech_api.speech_worker.schemas import SpeechRequest, TranscriptionResponse
 
 
 class SpeechModelState(Protocol):
@@ -20,7 +20,16 @@ class ASRState(Protocol):
     async def transcribe(self, wav_path: Path, language: str = "en") -> Any: ...
 
 
-def create_app(models: SpeechModelState, *, asr_service: ASRState | None = None) -> FastAPI:
+class TTSState(Protocol):
+    async def synthesize(self, text: str, language: str) -> Any: ...
+
+
+def create_app(
+    models: SpeechModelState,
+    *,
+    asr_service: ASRState | None = None,
+    tts_service: TTSState | None = None,
+) -> FastAPI:
     app = FastAPI(title="Speech Worker", docs_url=None, redoc_url=None)
 
     @app.get("/internal/health")
@@ -70,6 +79,32 @@ def create_app(models: SpeechModelState, *, asr_service: ASRState | None = None)
             if temp_path is not None:
                 temp_path.unlink(missing_ok=True)
 
+    @app.post("/internal/speak")
+    async def speak(request: SpeechRequest) -> Response:
+        if tts_service is None:
+            raise HTTPException(
+                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                detail={"code": "worker_unavailable", "message": "TTS service is not ready."},
+            )
+        try:
+            result = await tts_service.synthesize(request.text, language=request.language)
+        except ValueError as exc:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail={"code": "invalid_tts_request", "message": str(exc)},
+            ) from exc
+        return Response(
+            content=result.wav_bytes,
+            media_type="audio/wav",
+            headers={
+                "X-Speech-Language": result.language,
+                "X-Audio-Sample-Rate": str(result.sample_rate_hz),
+                "X-Audio-Duration-S": f"{result.duration_s:.6f}",
+                "X-Inference-Ms": f"{result.inference_ms:.3f}",
+                "X-Model": result.model,
+            },
+        )
+
     return app
 
 
@@ -94,9 +129,12 @@ def _default_app() -> FastAPI:
         WHISPER_MODEL_BASE,
         required=("config.json", "model.safetensors", "preprocessor_config.json"),
     )
+    from en_vi_speech_api.speech_worker.tts import TTSService, build_voxcpm_infer
+
     processor = load_whisper_processor(whisper_path)
     asr_service = ASRService(models=models, infer=build_whisper_infer(models, processor))
-    return create_app(models, asr_service=asr_service)
+    tts_service = TTSService(models=models, infer=build_voxcpm_infer(models))
+    return create_app(models, asr_service=asr_service, tts_service=tts_service)
 
 
 app = _default_app()
