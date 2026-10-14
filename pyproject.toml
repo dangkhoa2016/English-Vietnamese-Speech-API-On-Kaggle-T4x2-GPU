@@ -20,7 +20,11 @@ dev = [
   "pytest-asyncio>=1.2,<2",
   "ruff>=0.14,<1",
 ]
-translation = []
+translation = [
+  "jax[cuda12-local]==0.7.2",
+  "keras==3.13.2",
+  "keras-hub==0.26.0",
+]
 speech = []
 
 [tool.pytest.ini_options]
