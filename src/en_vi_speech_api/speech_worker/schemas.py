@@ -7,3 +7,8 @@ class TranscriptionResponse(BaseModel):
     chunk_count: int
     inference_ms: float
     model: str
+
+
+class SpeechRequest(BaseModel):
+    text: str
+    language: str
