@@ -77,6 +77,18 @@ class WorkerClient:
                 data={"language": language},
             )
 
+    async def translate(
+        self, text: str, *, source_language: str = "en", target_language: str = "vi"
+    ) -> dict[str, Any]:
+        return await self.post_json(
+            "/internal/translate",
+            {
+                "text": text,
+                "source_language": source_language,
+                "target_language": target_language,
+            },
+        )
+
     async def speak(self, text: str, *, language: str) -> WorkerAudio:
         response = await self._send(
             "POST",

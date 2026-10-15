@@ -9,6 +9,9 @@ from fastapi.responses import JSONResponse
 from en_vi_speech_api.config import Settings
 from en_vi_speech_api.coordinator.routes.speech import create_speech_router
 from en_vi_speech_api.coordinator.routes.transcriptions import create_transcriptions_router
+from en_vi_speech_api.coordinator.routes.translate_and_speak import (
+    create_translate_and_speak_router,
+)
 from en_vi_speech_api.coordinator.worker_client import WorkerClient
 from en_vi_speech_api.errors import ApiError
 
@@ -16,12 +19,17 @@ from en_vi_speech_api.errors import ApiError
 def create_app(
     *,
     speech_client=None,
+    translation_client=None,
     settings: Settings | None = None,
     request_temp_base: Path | None = None,
 ) -> FastAPI:
     resolved_settings = settings or Settings.load()
     resolved_speech_client = speech_client or WorkerClient(
         f"http://127.0.0.1:{resolved_settings.speech_worker_port}",
+        timeout_s=resolved_settings.worker_request_timeout_s,
+    )
+    resolved_translation_client = translation_client or WorkerClient(
+        f"http://127.0.0.1:{resolved_settings.translation_worker_port}",
         timeout_s=resolved_settings.worker_request_timeout_s,
     )
     app = FastAPI(title="English-Vietnamese Speech API", docs_url=None, redoc_url=None)
@@ -54,6 +62,14 @@ def create_app(
         )
     )
     app.include_router(create_speech_router(resolved_speech_client, resolved_settings))
+    app.include_router(
+        create_translate_and_speak_router(
+            resolved_speech_client,
+            resolved_translation_client,
+            resolved_settings,
+            request_temp_base=request_temp_base,
+        )
+    )
     return app
 
 
