@@ -54,6 +54,7 @@ class Settings:
     public_max_inflight: int
     public_max_pending: int
     enable_cloudflare_tunnel: bool
+    api_auth_required: bool
 
     @classmethod
     def load(cls) -> Settings:
@@ -71,6 +72,7 @@ class Settings:
             public_max_inflight=_int_env("PUBLIC_MAX_INFLIGHT", 2),
             public_max_pending=_int_env("PUBLIC_MAX_PENDING", 2),
             enable_cloudflare_tunnel=_bool_env("ENABLE_CLOUDFLARE_TUNNEL", False),
+            api_auth_required=_bool_env("API_AUTH_REQUIRED", False),
         )
         ports = {
             settings.coordinator_port,
