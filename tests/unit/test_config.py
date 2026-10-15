@@ -19,6 +19,7 @@ def test_settings_defaults_match_approved_plan(monkeypatch: pytest.MonkeyPatch) 
         "PUBLIC_MAX_INFLIGHT",
         "PUBLIC_MAX_PENDING",
         "ENABLE_CLOUDFLARE_TUNNEL",
+        "API_AUTH_REQUIRED",
     ):
         monkeypatch.delenv(name, raising=False)
 
@@ -37,6 +38,7 @@ def test_settings_defaults_match_approved_plan(monkeypatch: pytest.MonkeyPatch) 
     assert settings.public_max_inflight == 2
     assert settings.public_max_pending == 2
     assert settings.enable_cloudflare_tunnel is False
+    assert settings.api_auth_required is False
 
 
 def test_settings_environment_overrides(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -44,6 +46,7 @@ def test_settings_environment_overrides(monkeypatch: pytest.MonkeyPatch) -> None
     monkeypatch.setenv("MAX_AUDIO_UPLOAD_BYTES", "1048576")
     monkeypatch.setenv("PUBLIC_REQUEST_TIMEOUT_S", "321")
     monkeypatch.setenv("ENABLE_CLOUDFLARE_TUNNEL", "true")
+    monkeypatch.setenv("API_AUTH_REQUIRED", "true")
 
     settings = Settings.load()
 
@@ -51,6 +54,7 @@ def test_settings_environment_overrides(monkeypatch: pytest.MonkeyPatch) -> None
     assert settings.max_audio_upload_bytes == 1048576
     assert settings.public_request_timeout_s == 321
     assert settings.enable_cloudflare_tunnel is True
+    assert settings.api_auth_required is True
 
 
 def test_settings_reject_port_collisions(monkeypatch: pytest.MonkeyPatch) -> None:
