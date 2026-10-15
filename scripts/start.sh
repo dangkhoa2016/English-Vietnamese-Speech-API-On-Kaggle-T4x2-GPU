@@ -2,9 +2,12 @@
 set -euo pipefail
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 RUNTIME_DIR="$ROOT_DIR/runtime"
-PYTHON_BIN="${PYTHON_BIN:-$ROOT_DIR/.venv/bin/python}"
+ENV_ROOT="${ENV_ROOT:-/tmp/envi-speech-envs}"
+TRANSLATION_ENV="${TRANSLATION_ENV:-$ENV_ROOT/translation}"
+SPEECH_ENV="${SPEECH_ENV:-$ENV_ROOT/speech}"
+PYTHON_BIN="${PYTHON_BIN:-$TRANSLATION_ENV/bin/python}"
 TRANSLATION_PYTHON_BIN="${TRANSLATION_PYTHON_BIN:-$PYTHON_BIN}"
-SPEECH_PYTHON_BIN="${SPEECH_PYTHON_BIN:-$ROOT_DIR/.venv-speech/bin/python}"
+SPEECH_PYTHON_BIN="${SPEECH_PYTHON_BIN:-$SPEECH_ENV/bin/python}"
 STARTUP_TIMEOUT_S="${STARTUP_TIMEOUT_S:-180}"
 mkdir -p "$RUNTIME_DIR"
 
@@ -23,21 +26,42 @@ start_one() {
   echo $! >"$pid_file"
 }
 
+wait_ready() {
+  local name="$1" url="$2"
+  local pid_file="$RUNTIME_DIR/$name.pid" log_file="$RUNTIME_DIR/$name.log"
+  local pid="$(cat "$pid_file")"
+  for _ in $(seq 1 "$STARTUP_TIMEOUT_S"); do
+    if curl -fsS --max-time 2 "$url" >/dev/null 2>&1; then
+      echo "$name ready (PID $pid)"
+      return 0
+    fi
+    if ! kill -0 "$pid" 2>/dev/null; then
+      echo "$name exited during startup." >&2
+      tail -n 120 "$log_file" >&2 || true
+      return 1
+    fi
+    sleep 1
+  done
+  echo "$name readiness timeout after ${STARTUP_TIMEOUT_S}s." >&2
+  tail -n 120 "$log_file" >&2 || true
+  return 1
+}
+
+startup_fail() {
+  "$ROOT_DIR/scripts/status.sh" >&2 || true
+  "$ROOT_DIR/scripts/stop.sh" >/dev/null 2>&1 || true
+  exit 1
+}
+
+# Stage cold model loads deliberately. Kaggle attached-model storage can become
+# severely I/O-bound when TranslateGemma and the speech stack load concurrently.
 start_one translation-worker 0 en_vi_speech_api.translation_worker.app:app 8091 "$TRANSLATION_PYTHON_BIN"
+wait_ready translation-worker http://127.0.0.1:8091/internal/ready || startup_fail
+
 start_one speech-worker 1 en_vi_speech_api.speech_worker.app:app 8092 "$SPEECH_PYTHON_BIN"
+wait_ready speech-worker http://127.0.0.1:8092/internal/ready || startup_fail
+
 start_one coordinator '' en_vi_speech_api.coordinator.app:app 8090 "$PYTHON_BIN"
+wait_ready coordinator http://127.0.0.1:8090/health/live || startup_fail
 
-for attempt in $(seq 1 "$STARTUP_TIMEOUT_S"); do
-  if curl -fsS http://127.0.0.1:8091/internal/ready >/dev/null \
-    && curl -fsS http://127.0.0.1:8092/internal/ready >/dev/null \
-    && curl -fsS http://127.0.0.1:8090/health/live >/dev/null; then
-    echo "Service processes ready"
-    exit 0
-  fi
-  sleep 1
-done
-
-echo "Startup readiness timeout" >&2
-"$ROOT_DIR/scripts/status.sh" >&2 || true
-"$ROOT_DIR/scripts/stop.sh" >/dev/null 2>&1 || true
-exit 1
+echo "Service processes ready"
