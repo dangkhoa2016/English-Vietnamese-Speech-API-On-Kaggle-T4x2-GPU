@@ -79,6 +79,7 @@ def ports_are_free(ports: tuple[int, ...] = (8090, 8091, 8092)) -> bool:
     try:
         for port in ports:
             sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
             sockets.append(sock)
             sock.bind(("127.0.0.1", port))
         return True
