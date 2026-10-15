@@ -87,3 +87,14 @@ def ports_are_free(ports: tuple[int, ...] = (8090, 8091, 8092)) -> bool:
     finally:
         for sock in sockets:
             sock.close()
+
+
+def build_worker_environment(kind: str) -> dict[str, str]:
+    env = os.environ.copy()
+    if kind == "translation":
+        env["CUDA_VISIBLE_DEVICES"] = "0"
+    elif kind == "speech":
+        env["CUDA_VISIBLE_DEVICES"] = "1"
+    else:
+        raise ValueError(f"Unknown worker kind: {kind}")
+    return env
