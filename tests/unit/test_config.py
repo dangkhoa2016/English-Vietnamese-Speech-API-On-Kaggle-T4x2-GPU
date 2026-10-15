@@ -105,3 +105,52 @@ def test_route_contracts_are_stable() -> None:
     assert Routes.SPEECH_READY == "/internal/ready"
     assert Routes.SPEECH_TRANSCRIBE == "/internal/transcribe"
     assert Routes.SPEECH_SPEAK == "/internal/speak"
+
+
+def test_parse_nvidia_smi_output_zero_gpus() -> None:
+    from en_vi_speech_api.coordinator.lifecycle import parse_nvidia_smi_csv
+
+    assert parse_nvidia_smi_csv("") == ()
+
+
+def test_parse_nvidia_smi_output_one_t4() -> None:
+    from en_vi_speech_api.coordinator.lifecycle import parse_nvidia_smi_csv
+
+    gpus = parse_nvidia_smi_csv("0, Tesla T4, 15360\n")
+    assert len(gpus) == 1
+    assert gpus[0].index == 0
+    assert gpus[0].name == "Tesla T4"
+    assert gpus[0].memory_total_mib == 15360
+
+
+def test_parse_nvidia_smi_output_two_t4s() -> None:
+    from en_vi_speech_api.coordinator.lifecycle import parse_nvidia_smi_csv
+
+    gpus = parse_nvidia_smi_csv("0, Tesla T4, 15360\n1, Tesla T4, 15360\n")
+    assert [gpu.index for gpu in gpus] == [0, 1]
+    assert [gpu.name for gpu in gpus] == ["Tesla T4", "Tesla T4"]
+
+
+def test_validate_gpu_topology_rejects_less_than_two_t4s() -> None:
+    from en_vi_speech_api.coordinator.lifecycle import validate_gpu_topology
+
+    with pytest.raises(RuntimeError, match="exactly two Tesla T4 GPUs"):
+        validate_gpu_topology("0, Tesla T4, 15360\n")
+
+
+def test_validate_gpu_topology_accepts_two_t4s(monkeypatch: pytest.MonkeyPatch, tmp_path) -> None:
+    from en_vi_speech_api.coordinator import lifecycle
+
+    monkeypatch.setenv("CUDA_VISIBLE_DEVICES", "0,1")
+    monkeypatch.setattr(lifecycle, "KAGGLE_WORKING_DIR", tmp_path)
+    monkeypatch.setattr(lifecycle.shutil, "which", lambda name: f"/usr/bin/{name}")
+
+    report = lifecycle.validate_gpu_topology("0, Tesla T4, 15360\n1, Tesla T4, 15360\n")
+
+    assert report.gpu_count == 2
+    assert report.gpu_names == ("Tesla T4", "Tesla T4")
+    assert report.gpu_vram_mib == (15360, 15360)
+    assert report.cuda_visible_devices == "0,1"
+    assert report.ffmpeg_available is True
+    assert report.working_directory == tmp_path
+    assert report.working_directory_writable is True
