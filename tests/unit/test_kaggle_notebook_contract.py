@@ -154,19 +154,11 @@ def test_bootstrap_pins_qualified_model_runtimes() -> None:
         assert obsolete not in text
 
 
-def test_showcase_notebooks_have_stable_ids_and_matching_sources() -> None:
-    executed_path = ROOT / "notebooks/kaggle-production-showcase-executed.ipynb"
+def test_source_showcase_has_stable_ids_and_executed_notebook_is_not_committed() -> None:
     source_nb = load_notebook()
-    executed_nb = json.loads(executed_path.read_text(encoding="utf-8"))
-
-    assert len(source_nb["cells"]) == len(executed_nb["cells"])
     assert all(cell.get("id") for cell in source_nb["cells"])
-    assert [cell["id"] for cell in source_nb["cells"]] == [
-        cell["id"] for cell in executed_nb["cells"]
-    ]
-    assert [cell.get("source", []) for cell in source_nb["cells"]] == [
-        cell.get("source", []) for cell in executed_nb["cells"]
-    ]
+    executed_path = ROOT / "notebooks/kaggle-production-showcase-executed.ipynb"
+    assert not executed_path.exists()
 
 
 def test_notebook_documents_runtime_wheelhouse_and_audio_quality_evidence() -> None:
