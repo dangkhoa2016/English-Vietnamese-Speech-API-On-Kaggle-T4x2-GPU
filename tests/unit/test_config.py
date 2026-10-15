@@ -154,3 +154,22 @@ def test_validate_gpu_topology_accepts_two_t4s(monkeypatch: pytest.MonkeyPatch, 
     assert report.ffmpeg_available is True
     assert report.working_directory == tmp_path
     assert report.working_directory_writable is True
+
+
+def test_ports_are_free_treats_time_wait_as_rebindable() -> None:
+    import socket
+
+    from en_vi_speech_api.coordinator.lifecycle import ports_are_free
+
+    listener = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    listener.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+    listener.bind(("127.0.0.1", 0))
+    port = listener.getsockname()[1]
+    listener.listen(1)
+    client = socket.create_connection(("127.0.0.1", port))
+    connection, _ = listener.accept()
+    connection.close()
+    client.close()
+    listener.close()
+
+    assert ports_are_free((port,)) is True
