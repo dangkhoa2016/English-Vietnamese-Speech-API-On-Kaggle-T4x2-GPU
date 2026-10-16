@@ -1,0 +1,42 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  cpu-quality-gate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.12'
+          cache: pip
+      - name: Install FFmpeg
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ffmpeg
+      - name: Install CPU test dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -c constraints-kaggle-tested.txt -e '.[dev]'
+      - name: Ruff lint
+        run: ruff check .
+      - name: Ruff format check
+        run: ruff format --check src tests
+      - name: Unit and integration tests
+        run: pytest -q
+      - name: Shell syntax
+        run: |
+          for file in scripts/*.sh; do
+            bash -n "$file"
+          done
+      - name: Python bytecode compile
+        run: python -m compileall -q src tests
+      - name: Whitespace errors
+        run: git diff --check

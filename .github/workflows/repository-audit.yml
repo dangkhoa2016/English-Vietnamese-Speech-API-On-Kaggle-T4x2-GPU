@@ -1,0 +1,63 @@
+name: Repository Audit
+
+on:
+  push:
+    branches: [main]
+    tags: ['v*']
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.12'
+      - name: Repository policy audit
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          root = Path('.')
+          pairs = [
+              ('README.md','README.vi.md'),
+              ('NOTICE.md','NOTICE.vi.md'),
+              ('THIRD_PARTY_NOTICES.md','THIRD_PARTY_NOTICES.vi.md'),
+              ('MODEL_LICENSES.md','MODEL_LICENSES.vi.md'),
+              ('LICENSE-NOTES.md','LICENSE-NOTES.vi.md'),
+              ('CHANGELOG.md','CHANGELOG.vi.md'),
+              ('CONTRIBUTING.md','CONTRIBUTING.vi.md'),
+              ('CODE_OF_CONDUCT.md','CODE_OF_CONDUCT.vi.md'),
+              ('RELEASE_NOTES_v1.0.0.md','RELEASE_NOTES_v1.0.0.vi.md'),
+              ('docs/API.md','docs/API.vi.md'),
+              ('docs/ARCHITECTURE.md','docs/ARCHITECTURE.vi.md'),
+              ('docs/BENCHMARKS.md','docs/BENCHMARKS.vi.md'),
+              ('docs/SECURITY.md','docs/SECURITY.vi.md'),
+              ('docs/KAGGLE.md','docs/KAGGLE.vi.md'),
+              ('docs/REPRODUCIBILITY.md','docs/REPRODUCIBILITY.vi.md'),
+              ('docs/TROUBLESHOOTING.md','docs/TROUBLESHOOTING.vi.md'),
+              ('docs/RELEASE-EVIDENCE-v1.0.0.md','docs/RELEASE-EVIDENCE-v1.0.0.vi.md'),
+          ]
+          missing = [p for pair in pairs for p in pair if not (root/p).is_file()]
+          if missing:
+              raise SystemExit('Missing bilingual documents: ' + ', '.join(missing))
+          license_text=(root/'LICENSE').read_text()
+          required='Copyright (c) 2026 Đăng Khoa <i.am@dangkhoa.dev>'
+          if required not in license_text:
+              raise SystemExit('MIT author contract missing')
+          tracked = set(__import__('subprocess').check_output(['git','ls-files'], text=True).splitlines())
+          for forbidden in ('runtime/api_key.txt', '.env', '.env.local', 'gh_token'):
+              if forbidden in tracked:
+                  raise SystemExit(f'Forbidden tracked secret/runtime artifact: {forbidden}')
+          print('REPOSITORY_POLICY_AUDIT=PASS')
+          PY
+      - name: Whitespace audit
+        run: |
+          root_commit=$(git rev-list --max-parents=0 HEAD)
+          git diff --check "$root_commit"..HEAD
