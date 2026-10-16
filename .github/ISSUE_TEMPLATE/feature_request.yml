@@ -1,0 +1,24 @@
+name: Feature request
+description: Propose a scoped, evidence-driven improvement
+title: "feat: "
+labels: [enhancement]
+body:
+  - type: textarea
+    id: usecase
+    attributes:
+      label: Use case
+      description: What problem should this solve for the documented Kaggle T4x2 deployment?
+    validations:
+      required: true
+  - type: textarea
+    id: contract
+    attributes:
+      label: Contract impact
+      description: Note API, GPU mapping, licensing, security, or reproducibility impact.
+    validations:
+      required: true
+  - type: textarea
+    id: evidence
+    attributes:
+      label: Proposed verification
+      description: How should the change be tested or qualified?
