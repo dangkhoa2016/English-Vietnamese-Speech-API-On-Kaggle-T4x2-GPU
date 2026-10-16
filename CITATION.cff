@@ -1,0 +1,11 @@
+cff-version: 1.2.0
+message: "If this deployment engineering is useful in your work, please cite this repository."
+title: "English-Vietnamese Speech API on Kaggle T4x2 GPU"
+type: software
+authors:
+  - family-names: "Đăng Khoa"
+    email: "i.am@dangkhoa.dev"
+repository-code: "https://github.com/dangkhoa2016/English-Vietnamese-Speech-API-On-Kaggle-T4x2-GPU"
+version: "1.0.0"
+date-released: "2026-10-16"
+license: MIT
