@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "english-vietnamese-speech-api"
-version = "0.1.0"
+version = "1.0.0"
 description = "Production-style English/Vietnamese speech REST API demo for Kaggle T4x2"
 requires-python = ">=3.12,<3.13"
 dependencies = [
@@ -16,14 +16,14 @@ dependencies = [
 
 [project.optional-dependencies]
 dev = [
-  "pytest>=8.4,<9",
+  "pytest>=9.1,<10",
   "pytest-asyncio>=1.2,<2",
   "ruff>=0.14,<1",
 ]
 translation = [
-  "jax[cuda12-local]==0.7.2",
-  "keras==3.13.2",
-  "keras-hub==0.26.0",
+  "jax[cuda12-local]==0.11.2",
+  "keras==3.15.1",
+  "keras-hub==0.32.0",
 ]
 speech = []
 
