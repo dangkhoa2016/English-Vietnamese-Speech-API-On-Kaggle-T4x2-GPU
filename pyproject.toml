@@ -23,7 +23,7 @@ dev = [
 translation = [
   "jax[cuda12-local]==0.7.2",
   "keras==3.13.2",
-  "keras-hub==0.26.0",
+  "keras-hub==0.32.0",
 ]
 speech = []
 
