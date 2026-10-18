@@ -133,7 +133,13 @@ def _default_app() -> FastAPI:
 
     processor = load_whisper_processor(whisper_path)
     asr_service = ASRService(models=models, infer=build_whisper_infer(models, processor))
-    tts_service = TTSService(models=models, infer=build_voxcpm_infer(models))
+    from en_vi_speech_api.config import _bool_env
+
+    tts_service = TTSService(
+        models=models,
+        infer=build_voxcpm_infer(models),
+        stitch_vi_sentences=_bool_env("VOXCPM_VI_SENTENCE_STITCHING", False),
+    )
     return create_app(models, asr_service=asr_service, tts_service=tts_service)
 
 
