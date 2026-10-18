@@ -1,9 +1,9 @@
 import asyncio
 import io
+import wave
 
 import numpy as np
 import pytest
-import soundfile as sf
 
 from en_vi_speech_api.speech_worker.sentence_stitching import (
     join_pcm_wav_segments,
@@ -34,8 +34,18 @@ def test_conservative_split(text):
 
 def wav(values, rate=48000):
     result = io.BytesIO()
-    sf.write(result, np.asarray(values, dtype=np.float32), rate, format="WAV", subtype="PCM_16")
+    samples = np.asarray(values, dtype=np.float32)
+    pcm = np.clip(np.rint(samples * 32768), -32768, 32767).astype("<i2")
+    with wave.open(result, "wb") as output:
+        output.setnchannels(1)
+        output.setsampwidth(2)
+        output.setframerate(rate)
+        output.writeframes(pcm.tobytes())
     return result.getvalue()
+
+
+def encode_test_wav(samples, rate):
+    return wav(samples, rate)
 
 
 def test_pcm_stitch_pause_and_exact_samples():
@@ -75,15 +85,17 @@ async def test_live_service_stitching_contract_without_model():
         calls.append((text, language))
         return np.array([0.1, -0.1] * 1000, dtype=np.float32), 48000
 
-    service = TTSService(models=models, infer=infer, stitch_vi_sentences=True)
+    service = TTSService(
+        models=models, infer=infer, stitch_vi_sentences=True, encode_wav=encode_test_wav
+    )
     response = await service.synthesize(PARAGRAPH, "vi")
     assert len(calls) == 3
     assert [x[0] for x in calls] == split_vietnamese_sentences(PARAGRAPH)
-    with sf.SoundFile(io.BytesIO(response.wav_bytes)) as output:
-        assert output.samplerate == 48000
-        assert output.channels == 1
-        assert output.subtype == "PCM_16"
-        assert output.frames == 3 * 2000 + 2 * 14400
+    with wave.open(io.BytesIO(response.wav_bytes), "rb") as output:
+        assert output.getframerate() == 48000
+        assert output.getnchannels() == 1
+        assert output.getsampwidth() == 2
+        assert output.getnframes() == 3 * 2000 + 2 * 14400
     assert response.duration_s == pytest.approx(0.725)
 
 
@@ -96,6 +108,8 @@ async def test_disabled_and_english_paths_remain_unsplit():
             calls.append((text, lang))
             return np.array([0.2, -0.2], dtype=np.float32), 48000
 
-        service = TTSService(models=Models(), infer=infer, stitch_vi_sentences=flag)
+        service = TTSService(
+            models=Models(), infer=infer, stitch_vi_sentences=flag, encode_wav=encode_test_wav
+        )
         await service.synthesize(PARAGRAPH, language)
         assert calls == [(PARAGRAPH, language)]
