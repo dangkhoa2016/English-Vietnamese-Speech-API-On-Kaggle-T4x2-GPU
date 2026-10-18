@@ -11,7 +11,6 @@ from en_vi_speech_api.speech_worker.sentence_stitching import (
 )
 from en_vi_speech_api.speech_worker.tts import TTSService
 
-
 PARAGRAPH = (
     "Chúng tôi đang điều tra về độ trễ API cao trong môi trường sản xuất. "
     "Cơ sở dữ liệu hoạt động tốt, nhưng các yêu cầu thông qua dịch vụ thanh toán "
@@ -93,7 +92,7 @@ async def test_disabled_and_english_paths_remain_unsplit():
     for flag, language in ((False, "vi"), (True, "en")):
         calls = []
 
-        def infer(text, lang):
+        def infer(text, lang, calls=calls):
             calls.append((text, lang))
             return np.array([0.2, -0.2], dtype=np.float32), 48000
 
