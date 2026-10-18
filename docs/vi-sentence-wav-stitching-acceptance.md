@@ -32,7 +32,7 @@ This candidate follows the 18 October 2026 private Kaggle diagnostic `dangkhoa20
 
 Private Kaggle notebook: `dangkhoa2016/envi-stitch-gpu-acceptance-v3-t4x2`, successful version 3. Runtime source SHA: `b794edefb238a687d05e0f5e504f2364bb454af5`. Notebook confirmed `CPU_TEST_GATE=PASS`, `STITCH_SOURCE_AND_WORKER_CONFIG=PASS`, and `GPU_STITCH_ACCEPTANCE_GENERATION_V3=PASS`. The six files were downloaded from Kaggle output and checked as valid mono 48 kHz PCM-16 WAVs.
 
-Human reviewer approved **all six**. Preferred selections:
+Human listening assessment approved **all six**. Preferred selections:
 
 - `technical_incident_joined_run_02.wav`, 14.52 s, SHA-256 `e34f29e48ddcb3e59e7cbcaeee8ff3ce9a759696869758da9bac55260c249626`
 - `business_update_joined_run_03.wav`, 12.46 s, SHA-256 `ecf0db55c9a0f76abc93ae831b9b69b14d70fb4294328464141e94246d5f22d3`
