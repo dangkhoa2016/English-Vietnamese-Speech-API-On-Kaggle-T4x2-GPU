@@ -69,10 +69,16 @@ class TTSService:
         models: SpeechModelState,
         infer: Callable[[str, str], tuple[Any, int]],
         encode_wav: Callable[[Any, int], bytes] = encode_wav_bytes,
+        stitch_vi_sentences: bool = False,
+        sentence_pause_ms: int = 300,
     ) -> None:
+        if not 0 <= sentence_pause_ms <= 2000:
+            raise ValueError("Invalid sentence pause length")
         self.models = models
         self._infer = infer
         self._encode_wav = encode_wav
+        self._stitch_vi_sentences = stitch_vi_sentences
+        self._sentence_pause_ms = sentence_pause_ms
 
     async def synthesize(self, text: str, language: str) -> SpeechResult:
         if not self.models.ready:
@@ -83,14 +89,35 @@ class TTSService:
         if not normalized_text:
             raise ValueError("TTS text must not be empty")
 
+        from en_vi_speech_api.speech_worker.sentence_stitching import (
+            join_pcm_wav_segments,
+            split_vietnamese_sentences,
+        )
+
+        segments = (
+            split_vietnamese_sentences(normalized_text)
+            if self._stitch_vi_sentences and language == "vi"
+            else [normalized_text]
+        )
         started = time.perf_counter()
         async with self.models.gpu_semaphore:
-            samples, sample_rate_hz = await asyncio.to_thread(
-                self._infer,
-                normalized_text,
-                language,
-            )
-        samples = normalize_speech_waveform(samples)
+            if len(segments) > 1:
+                # Match the approved notebook: normalize and PCM-encode each sentence first.
+                # Do not post-normalize the joined output, which would alter its loudness.
+                encoded_parts = []
+                for segment in segments:
+                    part, rate = await asyncio.to_thread(self._infer, segment, language)
+                    if rate <= 0 or len(part) == 0:
+                        raise RuntimeError("VoxCPM2 returned invalid sentence audio")
+                    encoded_parts.append(self._encode_wav(normalize_speech_waveform(part), rate))
+                samples, sample_rate_hz = join_pcm_wav_segments(
+                    encoded_parts, pause_ms=self._sentence_pause_ms
+                )
+            else:
+                samples, sample_rate_hz = await asyncio.to_thread(
+                    self._infer, normalized_text, language
+                )
+                samples = normalize_speech_waveform(samples)
         sample_count = len(samples)
         if sample_rate_hz <= 0 or sample_count <= 0:
             raise RuntimeError("VoxCPM2 returned an invalid waveform")
