@@ -9,7 +9,9 @@ import soundfile as sf
 
 # Split only at clear sentence boundaries; never rewrite API or translated text.
 # Known abbreviations are kept together.
-_ABBREVIATIONS = frozenset({"TS.", "ThS.", "PGS.", "GS.", "Dr.", "Mr.", "Mrs.", "Ms.", "TP.", "v.v.", "e.g.", "i.e."})
+_ABBREVIATIONS = frozenset(
+    {"TS.", "ThS.", "PGS.", "GS.", "Dr.", "Mr.", "Mrs.", "Ms.", "TP.", "v.v.", "e.g.", "i.e."}
+)
 
 
 def split_vietnamese_sentences(text: str, *, max_segments: int = 12) -> list[str]:
@@ -19,8 +21,8 @@ def split_vietnamese_sentences(text: str, *, max_segments: int = 12) -> list[str
     segments: list[str] = []
     begin = 0
     for boundary in re.finditer(r"(?<=[.!?])\s+", cleaned):
-        before = cleaned[begin:boundary.start()].strip()
-        after = cleaned[boundary.end():]
+        before = cleaned[begin : boundary.start()].strip()
+        after = cleaned[boundary.end() :]
         if not before or not after or not after[0].isupper():
             continue
         if before.split()[-1] in _ABBREVIATIONS:
