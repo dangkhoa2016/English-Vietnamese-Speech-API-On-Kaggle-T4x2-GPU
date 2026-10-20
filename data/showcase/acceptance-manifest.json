@@ -1,0 +1,69 @@
+{
+  "schema_version": 2,
+  "validated_samples": {
+    "en-customer": {
+      "file": "en-customer.wav",
+      "language": "en",
+      "expected_text": "Hello, the delivery tracking system shows that my parcel was delivered successfully, but I still have not received the parcel. Please check the shipping status and send me an update.",
+      "asr_text": "Hello, the delivery tracking system shows that my parcel was delivered successfully, but I still have not received the parcel. Please check the shipping status and send me an update.",
+      "duration_s": 10.56,
+      "sha256": "f9a80fa20d92020c42c2ad93fae4df175f65e935131bf130c75dd29b11ea5d17",
+      "sentences": 2
+    },
+    "en-business": {
+      "file": "en-business.wav",
+      "language": "en",
+      "expected_text": "Our team completed the update this morning. The services are working normally, and we will share the final report tomorrow.",
+      "asr_text": "Our team completed the update this morning. The services are working normally, and we will share the final report tomorrow.",
+      "duration_s": 6.88,
+      "sha256": "b97fa40c24dc0c08258792fc5053a405769bf68ee124acfd136f090b10ba9824",
+      "sentences": 2
+    },
+    "en-travel": {
+      "file": "en-travel.wav",
+      "language": "en",
+      "expected_text": "I have a reservation for two guests next Friday. Please confirm the check in time and whether breakfast is included.",
+      "asr_text": "I have a reservation for two guests next Friday. Please confirm the check-in time and whether breakfast is included.",
+      "duration_s": 6.08,
+      "sha256": "209d455aa13c58948f94f24fa1552552b6aaedc25cccdd281a034885892ec260",
+      "sentences": 2
+    },
+    "vi-healthcare": {
+      "file": "vi-healthcare.wav",
+      "language": "vi",
+      "expected_text": "Tôi muốn đặt lịch khám tổng quát tại bệnh viện vào sáng thứ hai tuần sau. Xin cho biết có những giờ khám nào còn trống và tôi cần chuẩn bị giấy tờ gì.",
+      "asr_text": "Tôi muốn đặt lịch khám tổng quát tại bệnh viện vào sáng thứ hai tuần sau. Xin cho biết có những giờ khám nào còn trống và tôi cần chuẩn bị giấy tờ gì?",
+      "duration_s": 8.3,
+      "sha256": "6d63a3fe9140c0db7012db897c46cfd55eb518ae0d96ce45483a4b90398d0202",
+      "sentences": 2
+    },
+    "vi-banking": {
+      "file": "vi-banking.wav",
+      "language": "vi",
+      "expected_text": "Tôi vừa nhận được thông báo về một giao dịch mà mình không thực hiện. Xin hướng dẫn cách khóa thẻ tạm thời và kiểm tra lịch sử thanh toán.",
+      "asr_text": "Tôi vừa nhận được thông báo về một giao dịch mà mình không thực hiện. Xin hướng dẫn cách khóa thẻ tạm thời và kiểm tra lịch sử thanh toán.",
+      "duration_s": 8.3,
+      "sha256": "ba213c6dea3edf486fa40329d6d920d746324ac1b7b11e5d8356f1cb1c86902f",
+      "sentences": 2
+    },
+    "vi-education": {
+      "file": "vi-education.wav",
+      "language": "vi",
+      "expected_text": "Tôi muốn đăng ký khóa học lập trình trực tuyến bắt đầu vào tháng tới. Xin gửi thông tin về học phí, lịch học và cách nhận chứng chỉ sau khi hoàn thành.",
+      "asr_text": "Tôi muốn đăng ký khóa học lập trình trực tuyến bắt đầu vào tháng tới. Xin gửi thông tin về học phí, lịch học và cách nhận chứng chỉ sau khi hoàn thành.",
+      "duration_s": 8.62,
+      "sha256": "18fec4ff65d81ebfa8b672e94bfb0b108958ed584446faa59644bd21445e4e7e",
+      "sentences": 2
+    }
+  },
+  "pending_samples": {},
+  "active_scenario_slugs": [
+    "en-customer",
+    "en-business",
+    "en-travel",
+    "vi-healthcare",
+    "vi-banking",
+    "vi-education"
+  ],
+  "release_semantic_gate": "SIX_SCENARIOS_VALIDATED"
+}
