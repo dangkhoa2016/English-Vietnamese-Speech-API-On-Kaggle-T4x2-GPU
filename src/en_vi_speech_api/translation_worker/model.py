@@ -140,9 +140,15 @@ class TranslateGemmaTranslator:
         self._validate_model_files()
         started = time.perf_counter()
 
+        import_started = time.perf_counter()
         import jax
         import keras
         import keras_hub
+
+        print(
+            f"TRANSLATION_PROFILE imports_seconds={time.perf_counter() - import_started:.3f}",
+            flush=True,
+        )
 
         devices = jax.devices()
         if len(devices) != 1 or devices[0].platform != "gpu":
@@ -152,8 +158,18 @@ class TranslateGemmaTranslator:
         backbone_doc = json.loads((self.model_path / "config.json").read_text(encoding="utf-8"))
         backbone_cfg = dict(backbone_doc["config"])
         backbone_cfg["vision_encoder"] = None
+        build_started = time.perf_counter()
         backbone = Gemma3Backbone.from_config(backbone_cfg)
+        print(
+            f"TRANSLATION_PROFILE backbone_build_seconds={time.perf_counter() - build_started:.3f}",
+            flush=True,
+        )
+        weights_started = time.perf_counter()
         backbone.load_weights(str(self.model_path / "model.weights.h5"), skip_mismatch=True)
+        print(
+            f"TRANSLATION_PROFILE backbone_weights_seconds={time.perf_counter() - weights_started:.3f}",
+            flush=True,
+        )
 
         preprocessor_doc = json.loads(
             (self.model_path / "preprocessor.json").read_text(encoding="utf-8")
@@ -163,7 +179,12 @@ class TranslateGemmaTranslator:
         preprocessor = Gemma3CausalLMPreprocessor.from_config(preprocessor_cfg)
         preprocessor.tokenizer.set_proto(str(self.model_path / "assets/tokenizer/vocabulary.spm"))
 
+        assembly_started = time.perf_counter()
         self.model = Gemma3CausalLM(preprocessor, backbone, dtype=self.dtype)
+        print(
+            f"TRANSLATION_PROFILE causal_lm_assembly_seconds={time.perf_counter() - assembly_started:.3f}",
+            flush=True,
+        )
         self.preprocessor = self.model.preprocessor
         self.ready = True
         self.load_metadata = {

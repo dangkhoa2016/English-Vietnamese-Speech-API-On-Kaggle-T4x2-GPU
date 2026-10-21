@@ -46,7 +46,10 @@ def assert_single_logical_cuda_device() -> Any:
 def load_voxcpm_real(model_path: Path | str | None = None) -> Any:
     torch = assert_single_logical_cuda_device()
     del torch
+    imported = time.perf_counter()
     from voxcpm import VoxCPM
+
+    print(f"SPEECH_PROFILE voxcpm_import_seconds={time.perf_counter() - imported:.3f}", flush=True)
 
     path = (
         Path(model_path)
@@ -56,18 +59,29 @@ def load_voxcpm_real(model_path: Path | str | None = None) -> Any:
             required=("config.json", "model.safetensors", "audiovae.pth"),
         )
     )
-    return VoxCPM.from_pretrained(
+    loading = time.perf_counter()
+    model = VoxCPM.from_pretrained(
         str(path),
         load_denoiser=False,
         local_files_only=True,
         optimize=False,
         device="cuda:0",
     )
+    print(
+        f"SPEECH_PROFILE voxcpm_from_pretrained_seconds={time.perf_counter() - loading:.3f}",
+        flush=True,
+    )
+    return model
 
 
 def load_whisper_real(model_path: Path | str | None = None) -> Any:
     torch = assert_single_logical_cuda_device()
+    importing = time.perf_counter()
     from transformers import AutoModelForSpeechSeq2Seq
+
+    print(
+        f"SPEECH_PROFILE whisper_import_seconds={time.perf_counter() - importing:.3f}", flush=True
+    )
 
     path = (
         Path(model_path)
@@ -77,12 +91,23 @@ def load_whisper_real(model_path: Path | str | None = None) -> Any:
             required=("config.json", "model.safetensors", "preprocessor_config.json"),
         )
     )
+    loading = time.perf_counter()
     model = AutoModelForSpeechSeq2Seq.from_pretrained(
         str(path),
         dtype=torch.float16,
         local_files_only=True,
     )
-    return model.to("cuda:0")
+    print(
+        f"SPEECH_PROFILE whisper_from_pretrained_seconds={time.perf_counter() - loading:.3f}",
+        flush=True,
+    )
+    moving = time.perf_counter()
+    model = model.to("cuda:0")
+    print(
+        f"SPEECH_PROFILE whisper_cuda_transfer_seconds={time.perf_counter() - moving:.3f}",
+        flush=True,
+    )
+    return model
 
 
 class SpeechModels:
