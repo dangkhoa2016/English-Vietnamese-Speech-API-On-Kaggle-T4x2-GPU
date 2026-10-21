@@ -96,7 +96,7 @@ curl -sS -X POST http://127.0.0.1:8090/v1/audio/translate-and-speak \
   -o /tmp/translate-vi-to-en.zip
 ```
 
-Gallery notebook chạy ba tình huống Anh sang Việt và ba tình huống Việt sang Anh. Chế độ quick chạy đủ sáu tình huống không có benchmark mở rộng; đặt `ENVI_SHOWCASE_MODE=full` để chạy bounded benchmark.
+Gallery notebook chạy ba tình huống Anh sang Việt và ba tình huống Việt sang Anh. Chế độ full mặc định chạy đủ sáu tình huống, bounded benchmark và khởi động song song. Đặt `ENVI_SHOWCASE_MODE=quick` để chạy hai tình huống không có benchmark mở rộng, hoặc `ENVI_STARTUP_MODE=sequential` để so sánh thời gian khởi động.
 
 Xem [API.vi.md](API.vi.md) để biết đầy đủ request/response contract.
 

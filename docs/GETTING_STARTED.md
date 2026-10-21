@@ -96,7 +96,7 @@ curl -sS -X POST http://127.0.0.1:8090/v1/audio/translate-and-speak \
   -o /tmp/translate-vi-to-en.zip
 ```
 
-The notebook gallery runs three English-to-Vietnamese and three Vietnamese-to-English cases. Quick mode runs all six without the extended benchmark; set `ENVI_SHOWCASE_MODE=full` for the bounded benchmark.
+The notebook gallery runs three English-to-Vietnamese and three Vietnamese-to-English cases. Full mode is the default and runs all six scenarios plus a bounded benchmark with parallel startup. Set `ENVI_SHOWCASE_MODE=quick` for two scenarios without the extended benchmark, or `ENVI_STARTUP_MODE=sequential` for a cold-start comparison.
 
 See [API.md](API.md) for complete request and response contracts.
 

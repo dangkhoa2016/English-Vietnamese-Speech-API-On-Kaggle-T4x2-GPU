@@ -77,7 +77,8 @@ def test_notebook_has_single_six_case_gallery() -> None:
     gallery_cells = [
         "".join(c["source"])
         for c in cells
-        if c["cell_type"] == "code" and "SCENARIO_GALLERY_COUNT=6" in "".join(c["source"])
+        if c["cell_type"] == "code"
+        and "SCENARIO_GALLERY_COUNT={len(scenario_summary)}" in "".join(c["source"])
     ]
     assert len(gallery_cells) == 1
     gallery = gallery_cells[0]
@@ -91,10 +92,10 @@ def test_notebook_has_single_six_case_gallery() -> None:
     ):
         assert f'"{slug}"' in gallery
     assert "for slug in case_slugs:" in gallery
-    assert "len(scenario_summary) == 6" in gallery
-    assert 'len({row["request_id"] for row in scenario_summary}) == 6' in gallery
+    assert "len(scenario_summary) == len(case_slugs)" in gallery
+    assert 'len({row["request_id"] for row in scenario_summary}) == len(case_slugs)' in gallery
     assert "Step 10B" not in all_sources
-    assert "SCENARIO_COUNT=6" in gallery
+    assert "SCENARIO_COUNT={len(scenario_summary)}" in gallery
     assert "data/showcase/acceptance-manifest.json" in gallery
     assert "display(Audio(filename=str(original)))" in gallery
     assert "display(Audio(filename=str(output_path)))" in gallery
@@ -414,9 +415,9 @@ def test_production_gallery_uses_all_six_git_sources() -> None:
     source = "\n".join("".join(c.get("source", [])) for c in load_notebook()["cells"])
     assert "Step 10A" not in source
     assert "SCENARIO_GALLERY=PASS" in source
-    assert "len(scenario_summary) == 6" in source
+    assert "len(scenario_summary) == len(case_slugs)" in source
     assert "REVERSE_PIPELINE=PASS" in source
-    assert 'os.getenv("ENVI_SHOWCASE_MODE", "quick")' in source
+    assert 'os.getenv("ENVI_SHOWCASE_MODE", "full")' in source
     assert 'if SHOWCASE_MODE == "full":' in source
     assert "display(Audio(filename=str(original)))" in source
     assert "display(Audio(filename=str(output_path)))" in source
@@ -449,7 +450,8 @@ def test_gallery_does_not_condition_on_scenario_to_score_translation() -> None:
     gallery = "\n".join(
         "".join(c["source"])
         for c in cells
-        if c["cell_type"] == "code" and "SCENARIO_GALLERY_COUNT=6" in "".join(c["source"])
+        if c["cell_type"] == "code"
+        and "SCENARIO_GALLERY_COUNT={len(scenario_summary)}" in "".join(c["source"])
     )
     assert "def required_facts" not in gallery
     assert "if slug ==" not in gallery

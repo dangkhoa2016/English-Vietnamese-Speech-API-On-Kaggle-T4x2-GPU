@@ -57,19 +57,32 @@ def test_kaggle_startup_timeout_tolerates_cold_attached_storage() -> None:
 
     assert 'STARTUP_TIMEOUT_S="${STARTUP_TIMEOUT_S:-900}"' in start_text
     assert 'STARTUP_TIMEOUT_S="${STARTUP_TIMEOUT_S:-900}"' in acceptance_text
-    assert '"STARTUP_TIMEOUT_S": "900"' in notebook_source
+    assert '"STARTUP_TIMEOUT_S": os.getenv("STARTUP_TIMEOUT_S", "900")' in notebook_source
+    assert (
+        '"STARTUP_PROGRESS_INTERVAL_S": os.getenv("ENVI_STARTUP_PROGRESS_INTERVAL_S", "15")'
+        in notebook_source
+    )
 
 
 def test_start_script_stages_model_workers_to_avoid_cold_io_contention() -> None:
     text = (ROOT / "scripts/start.sh").read_text(encoding="utf-8")
-    translation_start = text.index("start_one translation-worker")
-    translation_ready = text.index("wait_ready translation-worker")
-    speech_start = text.index("start_one speech-worker")
-    speech_ready = text.index("wait_ready speech-worker")
+    assert 'STARTUP_MODE="${ENVI_STARTUP_MODE:-sequential}"' in text
+    parallel = text.split('if [[ "$STARTUP_MODE" == "parallel" ]]; then', 1)[1].split(
+        "\nelse\n", 1
+    )[0]
+    sequential = text.split("\nelse\n", 1)[1].split("\nfi\n", 1)[0]
+    assert parallel.index("start_one speech-worker") < parallel.index(
+        "wait_ready translation-worker"
+    )
+    assert (
+        sequential.index("start_one translation-worker")
+        < sequential.index("wait_ready translation-worker")
+        < sequential.index("start_one speech-worker")
+        < sequential.index("wait_ready speech-worker")
+    )
     coordinator_start = text.index("start_one coordinator")
     coordinator_ready = text.index("wait_ready coordinator")
-    assert translation_start < translation_ready < speech_start < speech_ready
-    assert speech_ready < coordinator_start < coordinator_ready
+    assert coordinator_start < coordinator_ready
 
 
 def test_concurrency_qualification_uses_distinct_audio_inputs() -> None:
