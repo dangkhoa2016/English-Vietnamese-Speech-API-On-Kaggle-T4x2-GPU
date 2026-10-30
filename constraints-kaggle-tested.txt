@@ -1,7 +1,7 @@
 # Versions observed in the retained Kaggle T4x2 qualification runtime.
 # This is an evidence lock, not a universal resolver lock for every platform.
 # CPU CI uses it only as a constraint for packages it actually installs.
-fastapi==0.143.2
+fastapi==0.162.0
 httpx==0.28.1
 python-multipart==0.0.32
 uvicorn==0.54.0
